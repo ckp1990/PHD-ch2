@@ -67,8 +67,7 @@ Adjustments made to match the specific dataset provided by the user.
 ---
 
 ## 4. Current Status (Live Update)
-**Status**: `RUNNING`
-**Mode**: Uncompiled (Interpretive R)
-**Details**: The model has initialized successfully and is currently executing the MCMC sampling (2000 iterations). 
-**Note**: Uncompiled execution is slower than compiled execution. No errors have occurred effectively since the start of sampling.
+**Status**: `RUNNING` (Production)
+**Mode**: **Compiled (C++)**
+**Details**: Started production run with **110,000 iterations** and **10,000 burn-in**. This will take significantly longer than the test run.
 

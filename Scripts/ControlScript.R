@@ -97,20 +97,23 @@ b=as.vector(rnorm(Ngrid, 0, .5))
 inits <- function(){list(b=b, p=0.2, lams=5, sigs=1, sigma0=3, beta1=a, beta2=a, beta3=a, beta4=a, alpha1=a, alpha2=a)}
 
 ### running nimble model ###
-# Running in UNCOMPILED mode due to Rtools mismatch (R 4.5 vs Rtools42)
-print("Building model (Uncompiled)...")
+# Running in COMPILED mode (Rtools45 detected)
+print("Building model...")
 model <- nimbleModel(code = NimModUniPrior, constants = const, inits = inits())
+
+print("Compiling model (C++)...")
+Cmodel <- compileNimble(model)
 
 print("Configuring MCMC...")
 mcmcConf <- configureMCMC(model, monitors = parameters)
 mcmc <- buildMCMC(mcmcConf)
 
-print("Running MCMC (Uncompiled - this may be slow)...")
+print("Compiling MCMC (C++)...")
+Cmcmc <- compileNimble(mcmc, project = model)
+
+print("Running MCMC (Compiled - Fast)...")
 # Run MCMC
-# Note: nburnin is handled by removing samples after run or custom loop. 
-# nimbleMCMC wrapper handles this, but runMCMC also has nburnin arg logic?
-# runMCMC returns samples matrix by default.
-samples <- runMCMC(mcmc, niter = 2000, nburnin = 200)
+samples <- runMCMC(Cmcmc, niter = 110000, nburnin = 10000)
 
 t1=Sys.time()
 # Wrap in list to match structure expected by posterior script
