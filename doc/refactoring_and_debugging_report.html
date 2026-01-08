@@ -1,0 +1,82 @@
+<html><body>
+<h1>Refactoring and Debugging Report</h1>
+<p><b>From:</b> <code>Rscripts.R</code> (Monolithic Legacy Script)</p>
+<p><b>To:</b> <code>Scripts/</code> (Modular, Modernized, and Debugged Pipeline)</p>
+<p>This document details the step-by-step engineering process undertaken to transform the original legacy code into a working analysis pipeline.</p>
+<h2>1. Code Refactoring & Modernization</h2>
+<p>The original file <code>Rscripts.R</code> contained 5 different logical parts in a single text file, using deprecated libraries and hardcoded paths.</p>
+<h3>A. Modularization</h3>
+<p>We split <code>Rscripts.R</code> into 5 separate, functional scripts:</p>
+<ol>
+<li><b><code>ControlScript.R</code></b>: The main orchestrator (formerly Part 1).</li>
+<li><b><code>DataMatrix.R</code></b>: Data loading and processing (formerly Part 2).</li>
+<li><b><code>NimModUniPrior.R</code></b>: NIMBLE model definition (formerly Part 3).</li>
+<li><b><code>posteriorSummariesWITHdetectionPlot.R</code></b>: Results analysis (formerly Part 4).</li>
+<li><b><code>cell_abundance.R</code></b>: Mapping and abundance estimation (formerly Part 5).</li>
+</ol>
+<h3>B. Library Migration</h3>
+<p>The code relied on <code>rgdal</code> and <code>maptools</code>, which are <b>deprecated/retired</b>. We migrated all spatial logic to the modern <code>sf</code> (Simple Features) package.</p>
+<ul>
+<li>  <b>Old</b>: <code>readShapePoly(...)</code> / <code>writeOGR(...)</code></li>
+<li>  <b>New</b>: <code>st_read(...)</code> / <code>st_write(...)</code></li>
+<li>  <b>Old</b>: <code>Map2poly</code> / <code>sp</code> adjacency</li>
+<li>  <b>New</b>: <code>spdep::poly2nb</code> directly objects on <code>sf</code> objects.</li>
+</ul>
+<h3>C. Path Corrections</h3>
+<ul>
+<li>  Removed hardcoded paths (e.g., <code>setwd("/ungulate/CHT")</code>).</li>
+<li>  Updated to use relative paths pointing to a <code>Data/</code> directory (e.g., <code>Data/nhb.csv</code>).</li>
+</ul>
+<hr>
+<h2>2. Programming & Logic Debugging</h2>
+<p>Once refactored, we encountered and resolved several runtime errors.</p>
+<h3>A. R Language Logic Errors</h3>
+<ol>
+<li><b>Vector-to-Scalar Assignment (<code>DataMatrix.R</code>)</b></li>
+</ol>
+<ul>
+<li>  <i>Error</i>: <code>number of items to replace is not a multiple of replacement length</code>.</li>
+<li>  <i>Cause</i>: The script tried to assign a vector of matches (<code>TRid$Nummer[b]</code>) to a single matrix cell.</li>
+<li>  <i>Fix</i>: Explicitly selected the first element: <code>TRid$Nummer[b][1]</code>.</li>
+</ul>
+<ol>
+<li><b>Vector-to-Scalar Logic (<code>NimModUniPrior.R</code>)</b></li>
+</ol>
+<ul>
+<li>  <i>Error</i>: <code>Code distBreaks was given as known but evaluates to a non-scalar</code>.</li>
+<li>  <i>Cause</i>: NIMBLE expected a scalar value in the detection function <code>phi(...)</code>, but the entire <code>distBreaks</code> vector was passed.</li>
+<li>  <i>Fix</i>: Changed to use <code>distBreaks[1]</code>.</li>
+</ul>
+<ol>
+<li><b>BUGS/NIMBLE Assignment Syntax</b></li>
+</ol>
+<ul>
+<li>  <i>Error</i>: <code>Dimension of grszMean is 0</code>.</li>
+<li>  <i>Cause</i>: Initializing a vector node with scalar syntax (<code>grszMean <- ...</code>) caused NIMBLE to define it as a scalar, conflicting with later vector usage (<code>grszMean[k]</code>).</li>
+<li>  <i>Fix</i>: Changed assignment to vector syntax: <code>grszMean[1] <- ...</code> and <code>gs[1] <- ...</code>.</li>
+<li>  <i>Fix</i>: Removed <code>grszMean</code> from the <code>constants</code> list to allow it to be a stochastic node.</li>
+</ul>
+<hr>
+<h2>3. Data & Configuration Debugging</h2>
+<p>Adjustments made to match the specific dataset provided by the user.</p>
+<h3>A. Species Mismatch</h3>
+<ul>
+<li>  <b>Issue</b>: Script defaulted to Chital (<code>CHT</code>), but only <code>TRsbrcovariates1.csv</code> (Sambar) was available.</li>
+<li>  <b>Fix</b>:</li>
+</ul>
+<ol>
+<li>Changed species code to <code>sps = 'SBR'</code>.</li>
+<li>Updated specific covariate column name from <code>CHTpalplants.m2</code> to <code>SBRpalplants.m2</code>.</li>
+</ol>
+<h3>B. Environment Mismatch (Compilation)</h3>
+<ul>
+<li>  <b>Issue</b>: <code>Failed to create the shared library</code>.</li>
+<li>  <b>Cause</b>: Version mismatch between <b>R 4.5.2</b> and <b>Rtools42</b>. NIMBLE requires matching versions to compile C++ models.</li>
+<li>  <b>Fix</b>: Modified <code>ControlScript.R</code> to run in <b>Uncompiled Mode</b>. This bypasses the C++ compiler requirement, allowing the model to run (albeit slower) without requiring system-level reinstallations.</li>
+</ul>
+<hr>
+<h2>4. Current Status (Live Update)</h2>
+<p><b>Status</b>: <code>RUNNING</code> (Production)</p>
+<p><b>Mode</b>: <b>Compiled (C++)</b></p>
+<p><b>Details</b>: Started production run with <b>110,000 iterations</b> and <b>10,000 burn-in</b>. This will take significantly longer than the test run.</p>
+</body></html>

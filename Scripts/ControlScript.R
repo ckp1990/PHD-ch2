@@ -9,6 +9,7 @@ library(mcmcse)
 library(matrixStats)
 
 # setwd("/ungulate/CHT") # REMOVED: Use RStudio Project root or relative paths
+project_dir <- getwd()
 
 ### Choose species to be analysed ###
 ### The data from 5 species; CHT-chital, SBR-sambar, GAR-gaur, PIG-wild pig, MJK-muntjac were analyzed using these scripts###
@@ -29,9 +30,9 @@ trcov <- 'Data/TRsbrcovariates1.csv'
 
 ### Specify values for estimating detection function ###
 distcatsize=20; # distance category size; 15 to 20 categories are ideal#
-distlimit=370; # maximum distance observed#
+distlimit=212; # maximum distance observed#
 grszcat=5; # cluster category size; 10 to 15 categories are ideal#
-grszlimit=60; # maximum cluster size observed#
+grszlimit=9; # maximum cluster size observed#
 
 ### Specify sampling design ###
 ## Number of transects in the study design ##
@@ -113,7 +114,7 @@ Cmcmc <- compileNimble(mcmc, project = model)
 
 print("Running MCMC (Compiled - Fast)...")
 # Run MCMC
-samples <- runMCMC(Cmcmc, niter = 110000, nburnin = 10000)
+samples <- runMCMC(Cmcmc, niter = 220000, nburnin = 20000)
 
 t1=Sys.time()
 # Wrap in list to match structure expected by posterior script
@@ -123,15 +124,21 @@ print(Sys.time()-t1)
 
 ### save objects as a backup to avoid any loss ###
 ### comment this if you want to save read/write time ###
+# Create output directory
+output_dir <- file.path(project_dir, paste0("Output_", sps, "_", format(Sys.time(), "%d%b%Y_%H%M%S")))
+dir.create(output_dir)
+print(paste("Saving outputs to:", output_dir))
+setwd(output_dir)
+
 save.image()
 
 ### Compute summaries of posterior distribution ###
 ## check object ‘grszBreaks’ to determine which ‘groupsizes’ should be plotted ##
 ## uncomment lines in 'posteriorSummariesWITHdetectionPlot.R' if you are using the model WITH indicator variables ##
 grszSeq = seq(1:length(grszBreaks))
-source('Scripts/posteriorSummariesWITHdetectionPlot.R')
+source(file.path(project_dir, 'Scripts/posteriorSummariesWITHdetectionPlot.R'))
 
 ## Compute local, site-level and landscape-level abundances and generate density surface map ##
 ## Update lines 6-7 in the 'cell_abundance.R' script depending on the number of covariates used in the analysis ##
-source('Scripts/cell_abundance.R')
+source(file.path(project_dir, 'Scripts/cell_abundance.R'))
 save.image()

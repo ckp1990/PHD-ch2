@@ -1,5 +1,5 @@
 # Refactoring and Debugging Report
-**From:** `Rscripts.R` (Monolithic Legacy Script)
+**From:** `Rscripts.R` (Monolithic Legacy Script downloaded from the book)
 **To:** `Scripts/` (Modular, Modernized, and Debugged Pipeline)
 
 This document details the step-by-step engineering process undertaken to transform the original legacy code into a working analysis pipeline.
