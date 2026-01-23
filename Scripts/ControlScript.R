@@ -31,7 +31,7 @@ trcov <- 'Data/TRsbrcovariates1.csv'
 ### Specify values for estimating detection function ###
 distcatsize=20; # distance category size; 15 to 20 categories are ideal#
 distlimit=212; # maximum distance observed#
-grszcat=5; # cluster category size; 10 to 15 categories are ideal#
+grszcat=2; # cluster category size; 10 to 15 categories are ideal#
 grszlimit=9; # maximum cluster size observed#
 
 ### Specify sampling design ###
@@ -112,9 +112,28 @@ mcmc <- buildMCMC(mcmcConf)
 print("Compiling MCMC (C++)...")
 Cmcmc <- compileNimble(mcmc, project = model)
 
+### Parse Command Line Arguments ###
+args <- commandArgs(trailingOnly = TRUE)
+if(length(args) >= 1) {
+    # Expected args: niter nburnin job_label
+    # Example: Rscript ControlScript.R 1100 100 "test_run"
+    niter_arg <- as.numeric(args[1])
+    nburnin_arg <- as.numeric(args[2])
+    # If label is provided, use it. Otherwise default to timestamp.
+    job_label <- if(length(args) >= 3) args[3] else format(Sys.time(), "%d%b%Y")
+} else {
+    # Default values for manual runs
+    niter_arg <- 220000
+    nburnin_arg <- 20000
+    job_label <- format(Sys.time(), "%d%b%Y_%H%M%S")
+}
+
+print(paste("Settings from args/defaults -- niter:", niter_arg, "nburnin:", nburnin_arg, "Label:", job_label))
+
 print("Running MCMC (Compiled - Fast)...")
 # Run MCMC
-samples <- runMCMC(Cmcmc, niter = 220000, nburnin = 20000)
+# Use the parsed arguments
+samples <- runMCMC(Cmcmc, niter = niter_arg, nburnin = nburnin_arg)
 
 t1=Sys.time()
 # Wrap in list to match structure expected by posterior script
@@ -125,7 +144,8 @@ print(Sys.time()-t1)
 ### save objects as a backup to avoid any loss ###
 ### comment this if you want to save read/write time ###
 # Create output directory
-output_dir <- file.path(project_dir, paste0("Output_", sps, "_", format(Sys.time(), "%d%b%Y_%H%M%S")))
+# Use the job_label in the directory name
+output_dir <- file.path(project_dir, paste0("Output_", sps, "_", job_label))
 dir.create(output_dir)
 print(paste("Saving outputs to:", output_dir))
 setwd(output_dir)
