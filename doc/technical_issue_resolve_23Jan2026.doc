@@ -1,0 +1,40 @@
+<html><body>
+<h1>Technical Issue Resolution Report</h1>
+<p><b>Date:</b> 23 January 2026</p>
+<h2>Overview</h2>
+<p>I investigated discrepancies in the Sambar analysis results compared to historical data and implemented fixes to align the model behavior with expectations. Additionally, I set up a background job submission workflow to facilitate long-running analyses.</p>
+<h2>1. Group Count Discrepancy (2 vs 5 Groups)</h2>
+<p><b>Issue:</b> I observed that the analysis was generating only 2 group size categories, whereas the original author's results showed 5 groups.</p>
+<p><b>Finding:</b> The control parameter <code>grszcat</code> (group size category interval) was set to 5, with a <code>grszlimit</code> (max size) of 9.</p>
+<ul>
+<li>  Mathematically: <code>floor(size / 5) + 1</code> results in only 2 possible integers for sizes 1-9.</li>
+</ul>
+<p><b>Resolution:</b> I changed <code>grszcat</code> to <b>2</b> in <code>ControlScript.R</code>.</p>
+<ul>
+<li>  New behavior: Sizes 1-2 (Group 1), 3-4 (Group 2), ..., 9 (Group 5). This matches the expected 5-group structure.</li>
+</ul>
+<h2>2. Distlimit Discrepancy (212m vs 400m in plots)</h2>
+<p><b>Issue:</b> The <code>distlimit</code> was set to 212m in the script, but the provided detection probability plots showed an x-axis extending to ~400m.</p>
+<p><b>Finding:</b> I analyzed <code>posteriorSummariesWITHdetectionPlot.R</code> and found that the plot x-axis limit is defined as <code>distlimit + 20</code>.</p>
+<ul>
+<li>  <b>Conclusion:</b> The presence of a 400m axis in historical plots indicates that those specific plots were generated from a run where <code>distlimit</code> was set to approximately 380m, not 212m. The current setting of 212m is effectively cutting off the data range compared to that historical run. I kept <code>distlimit=212</code> as per the current control script but noted the reason for the visual difference.</li>
+</ul>
+<h2>3. Infinite Log Probability Warning (-Inf)</h2>
+<p><b>Issue:</b> Upon fixing the group counts, the model threw a <code>logProb is -Inf</code> warning during initialization, specifically related to <code>sigma0</code>.</p>
+<p><b>Finding:</b> The initial value for <code>sigma0</code> was set to 3. In the model, <code>sigma</code> scales with group size. For the first group (smallest size), <code>sigma0=3</code> implies a very narrow detection width (~20m).</p>
+<ul>
+<li>  data contains observations at the full distance of 212m.</li>
+<li>  The probability of detecting a small group at 212m given a ~20m effective strip width is mathematically indistinguishable from zero by the computer.</li>
+<li>  <code>log(0)</code> = <code>-Inf</code>, causing the crash.</li>
+</ul>
+<p><b>Resolution:</b> I updated the <code>inits</code> function in <code>ControlScript.R</code> to increase <code>sigma0</code> from 3 to <b>4</b>. This provides a sufficiently wide initial detection function to assign non-zero probabilities to distant observations, allowing the MCMC chain to start successfully.</p>
+<h2>4. Job Submission System</h2>
+<p><b>Requirement:</b> Enable running the analysis as a background job with custom parameters to avoid blocking the local R session.</p>
+<p><b>Implementation:</b></p>
+<ul>
+<li>  <b>Refactored <code>ControlScript.R</code></b>: Added command-line argument parsing to accept <code>niter</code>, <code>nburnin</code>, and <code>job_label</code> dynamically, while preserving defaults for interactive use.</li>
+<li>  <b>Created <code>Scripts/SubmitJob.R</code></b>: Developed a helper function <code>submit_job()</code> that constructs the execution command and launches it as a detached background process (using PowerShell on Windows). It automatically redirects output to a log file (e.g., <code>Sambar_Fixed_Run_2.log</code>) for monitoring.</li>
+</ul>
+<h2>Status</h2>
+<p>The final "Fixed" run (<code>Sambar_Fixed_Run_2</code>) is currently executing with these corrections.</p>
+</body></html>
