@@ -95,7 +95,8 @@ parameters <- c("b", "p", "lams", "sigs", "beta1", "beta2",
 ## specify either random or plausible initial values for the model WITHOUT indicator variables##
 a=1
 b=as.vector(rnorm(Ngrid, 0, .5))
-inits <- function(){list(b=b, p=0.2, lams=5, sigs=1, sigma0=3, beta1=a, beta2=a, beta3=a, beta4=a, alpha1=a, alpha2=a)}
+# Increased sigma0 from 3 to 4 to avoid -Inf probability for distant detections in Group 1
+inits <- function(){list(b=b, p=0.2, lams=5, sigs=1, sigma0=4, beta1=a, beta2=a, beta3=a, beta4=a, alpha1=a, alpha2=a)}
 
 ### running nimble model ###
 # Running in COMPILED mode (Rtools45 detected)
